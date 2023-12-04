@@ -1,5 +1,6 @@
 import {
     O_vec2, 
+    O_vec3, 
     O_vec4
 } from "https://deno.land/x/vector@1.1/mod.js"
 // window.O_vec2 = O_vec2
@@ -170,7 +171,7 @@ let o_state = {
     o_file: null, 
     a_o_file: [],
     s_url_preview_image: '',
-    o_scl_unit_poster: new O_vec2(471), 
+    o_scl_mm_poster: new O_vec2(471), 
     o_scl_px_image_original: new O_vec2(),
     o_img: null,
     n_ratio_image_o_scl_x_to_y: 1., 
@@ -181,14 +182,18 @@ let o_state = {
     n_mm_per_inch: 25.4, 
     // a security margin because printers cannot print all paper area on the edges
     // vec4 -> (top, right, bottom, left);
-    o_thickness_unit_print_border: new O_vec4(10),
-    o_thickness_unit_glue_border: new O_vec4(10),//a border that will be used for gluing or overlaying the cut out papers
-    // o_scl_unit_image_and_glue_border_and_print_border// this would be the same size as the current selected o_paper_format
-    o_scl_unit_paper: new O_vec2(),
-    o_scl_unit_image_and_glue_border: new O_vec2(),//the actual canvas size includes glue border and image
-    o_scl_unit_image: new O_vec2(),
-    o_trn_unit_image_and_glue_border: new O_vec2(), 
-    o_trn_unit_image: new O_vec2(),
+    // the default unit is always millimeter, all values have to be stored as millimeter
+    // and then can get calculated to the o_unit selected by the user
+    b_onevalue_only_o_thickness_mm_glue_border: true,
+    b_onevalue_only_o_thickness_mm_print_border: true,
+    o_thickness_mm_print_border: new O_vec4(10),
+    o_thickness_mm_glue_border: new O_vec4(10),//a border that will be used for gluing or overlaying the cut out papers
+    // o_scl_mm_image_and_glue_border_and_print_border// this would be the same size as the current selected o_paper_format
+    o_scl_mm_paper: new O_vec2(),
+    o_scl_mm_image_and_glue_border: new O_vec2(),//the actual canvas size includes glue border and image
+    o_scl_mm_image: new O_vec2(),
+    o_trn_mm_image_and_glue_border: new O_vec2(), 
+    o_trn_mm_image: new O_vec2(),
      
     //   |   |
     // ---------
@@ -212,56 +217,56 @@ let f_o_vec_px_from_unit = function(o){
         o_state.n_dots_per_unit
     );
 }
-let f_o_vec_unit_nor_by_maxcomp = function(o_vec){
-    let n_x = f_n_converted(o_state.o_paper_format.o_scl_mm.n_x, 'millimeter', o_state.o_unit.s_name);
-    let n_y = f_n_converted(o_state.o_paper_format.o_scl_mm.n_y, 'millimeter', o_state.o_unit.s_name);
-    let n_max_comp = Math.max(n_x, n_y);
-    
-    return o_vec.div(
-        n_x, 
-        n_y
-            // n_max_comp
-        )
-    
+
+let f_o_vec_current_unit_from_mm = function(o_vec){
+    let a_n = o_vec.a_n_comp.map(
+        n=>{
+            return f_n_converted(
+                n,
+                'millimeter',
+                o_state.o_unit.s_name
+            )
+        }
+    );
+    let o_n_len_O_vec = {2:O_vec2, 3:O_vec3, 4:O_vec4};
+    return new o_n_len_O_vec[a_n.length](a_n);
+
 }
 let f_update_all_o_scl_unit = function(){
-    o_state.o_scl_unit_paper = new O_vec2(
-        f_n_converted(o_state.o_paper_format.o_scl_mm.n_x, 'millimeter', o_state.o_unit.s_name),
-        f_n_converted(o_state.o_paper_format.o_scl_mm.n_y, 'millimeter', o_state.o_unit.s_name)
-    );
+   
 
 
-    o_state.o_scl_unit_image_and_glue_border = o_state.o_scl_unit_paper.sub(
-        (o_state.o_thickness_unit_print_border[1]+o_state.o_thickness_unit_print_border[3]), 
-        (o_state.o_thickness_unit_print_border[0]+o_state.o_thickness_unit_print_border[2]),
+    o_state.o_scl_mm_image_and_glue_border = o_state.o_paper_format.o_scl_mm.sub(
+        (o_state.o_thickness_mm_print_border[1]+o_state.o_thickness_mm_print_border[3]), 
+        (o_state.o_thickness_mm_print_border[0]+o_state.o_thickness_mm_print_border[2]),
     )
-    o_state.o_scl_unit_image = o_state.o_scl_unit_image_and_glue_border.sub(
-        (o_state.o_thickness_unit_glue_border[1]+o_state.o_thickness_unit_glue_border[3]), 
-        (o_state.o_thickness_unit_glue_border[0]+o_state.o_thickness_unit_glue_border[2]),
+    o_state.o_scl_mm_image = o_state.o_scl_mm_image_and_glue_border.sub(
+        (o_state.o_thickness_mm_glue_border[1]+o_state.o_thickness_mm_glue_border[3]), 
+        (o_state.o_thickness_mm_glue_border[0]+o_state.o_thickness_mm_glue_border[2]),
     )
 
 
-    o_state.o_trn_unit_image_and_glue_border = new O_vec2(
+    o_state.o_trn_mm_image_and_glue_border = new O_vec2(
         //vec4(top, right, bottom, left)
-        0+o_state.o_thickness_unit_print_border[1],//top
-        0+o_state.o_thickness_unit_print_border[3]//left
+        0+o_state.o_thickness_mm_print_border[3],//left
+        0+o_state.o_thickness_mm_print_border[0],//top
     )
-    o_state.o_trn_unit_image = new O_vec2(
-        o_state.o_trn_unit_image_and_glue_border.n_x+o_state.o_thickness_unit_glue_border[1],
-        o_state.o_trn_unit_image_and_glue_border.n_y+o_state.o_thickness_unit_glue_border[3],
+    o_state.o_trn_mm_image = new O_vec2(
+        o_state.o_trn_mm_image_and_glue_border.n_x+o_state.o_thickness_mm_glue_border[3],
+        o_state.o_trn_mm_image_and_glue_border.n_y+o_state.o_thickness_mm_glue_border[0],
     )
-    let o_scl_unit_nor_image = f_o_vec_unit_nor_by_maxcomp(
-        o_state.o_scl_unit_image
-    );
-    let o_scl_unit_nor_image_and_glue_border = f_o_vec_unit_nor_by_maxcomp(
-        o_state.o_scl_unit_image_and_glue_border
-    );
+    let o_scl_mm_nor_image = o_state.o_scl_mm_image.div(
+        o_state.o_paper_format.o_scl_mm
+    )
+    let o_scl_mm_nor_image_and_glue_border = o_state.o_scl_mm_image_and_glue_border.div(
+        o_state.o_paper_format.o_scl_mm
+    )
 
-    let o_trn_unit_nor_image_and_glue_border = f_o_vec_unit_nor_by_maxcomp(
-        o_state.o_trn_unit_image_and_glue_border
+    let o_trn_mm_nor_image_and_glue_border = o_state.o_trn_mm_image_and_glue_border.div(
+        o_state.o_paper_format.o_scl_mm
     )
-    let o_trn_unit_nor_image = f_o_vec_unit_nor_by_maxcomp(
-        o_state.o_trn_unit_image
+    let o_trn_mm_nor_image = o_state.o_trn_mm_image.div(
+        o_state.o_paper_format.o_scl_mm
     )
 
 
@@ -297,8 +302,8 @@ let f_update_all_o_scl_unit = function(){
             visibility: visible; /* Make only canvas visible */
         }
         canvas {
-            width: ${o_state.o_scl_unit_image_and_glue_border.n_x}mm !important; /* Width for print */
-            height: ${o_state.o_scl_unit_image_and_glue_border.n_y}mm !important; /* Height for print */
+            width: ${o_state.o_scl_mm_image_and_glue_border.n_x}mm !important; /* Width for print */
+            height: ${o_state.o_scl_mm_image_and_glue_border.n_y}mm !important; /* Height for print */
             /* You might need to adjust other styles for print as well */
         }
         .a_o_canvas canvas {
@@ -336,130 +341,130 @@ let f_update_all_o_scl_unit = function(){
     .canvas_preview div{
         position:absolute;
     }
-    .o_scl_unit_paper, .o_thickness_unit_print_border{
+    .o_scl_mm_paper, .o_thickness_mm_print_border{
         width: 100%;
         height: 100%;
         background:white;
         border: red;
     }
-    .o_scl_unit_image{
-        width: ${(o_scl_unit_nor_image.n_x)*100}%;
-        height: ${(o_scl_unit_nor_image.n_y)*100}%;
+    .o_scl_mm_image{
+        width: ${(o_scl_mm_nor_image.n_x)*100}%;
+        height: ${(o_scl_mm_nor_image.n_y)*100}%;
         background: blue;
     }
-    .o_scl_unit_image_and_glue_border, .o_thickness_unit_glue_border{
-        width: ${(o_scl_unit_nor_image_and_glue_border.n_x)*100}%;
-        height: ${(o_scl_unit_nor_image_and_glue_border.n_y)*100}%;
+    .o_scl_mm_image_and_glue_border, .o_thickness_mm_glue_border{
+        width: ${(o_scl_mm_nor_image_and_glue_border.n_x)*100}%;
+        height: ${(o_scl_mm_nor_image_and_glue_border.n_y)*100}%;
         background: red;
     }
 
-    .o_trn_unit_image_and_glue_border{
-        left: ${(o_trn_unit_nor_image_and_glue_border.n_x)*100}%;
-        top: ${(o_trn_unit_nor_image_and_glue_border.n_y)*100}%;
+    .o_trn_mm_image_and_glue_border{
+        left: ${(o_trn_mm_nor_image_and_glue_border.n_x)*100}%;
+        top: ${(o_trn_mm_nor_image_and_glue_border.n_y)*100}%;
     }
-    .o_trn_unit_image{
-        left: ${(o_trn_unit_nor_image.n_x)*100}%;
-        top: ${(o_trn_unit_nor_image.n_y)*100}%;
+    .o_trn_mm_image{
+        left: ${(o_trn_mm_nor_image.n_x)*100}%;
+        top: ${(o_trn_mm_nor_image.n_y)*100}%;
     }
     `
 }
 
 let f_update_a_o_canvas = function(){
 
-    let o_div_a_o_canvas = document.querySelector('.a_o_canvas');
-    o_div_a_o_canvas.innerHTML = '';
+    // let o_div_a_o_canvas = document.querySelector('.a_o_canvas');
+    // o_div_a_o_canvas.innerHTML = '';
 
-    for(let n_idx_canvas = 0; n_idx_canvas < o_canvases.n_x*o_canvases.n_y; n_idx_canvas+=1){
-        let o_canvas = document.createElement('canvas');
-        o_canvas.width = o_state.o_scl_px_canvas.n_x;
-        o_canvas.height = o_state.o_scl_px_canvas.n_y;
-        o_canvas.style.width = o_state.o_scl_px_canvas.n_x*n_factor+'px'
-        o_canvas.style.height = o_state.o_scl_px_canvas.n_y*n_factor+'px'
-        let o_ctx = o_canvas.getContext('2d');
+    // for(let n_idx_canvas = 0; n_idx_canvas < o_canvases.n_x*o_canvases.n_y; n_idx_canvas+=1){
+    //     let o_canvas = document.createElement('canvas');
+    //     o_canvas.width = o_state.o_scl_px_canvas.n_x;
+    //     o_canvas.height = o_state.o_scl_px_canvas.n_y;
+    //     o_canvas.style.width = o_state.o_scl_px_canvas.n_x*n_factor+'px'
+    //     o_canvas.style.height = o_state.o_scl_px_canvas.n_y*n_factor+'px'
+    //     let o_ctx = o_canvas.getContext('2d');
 
-        let o_coordinates = o_canvases.from_idx(n_idx_canvas);
-        let o_trn_mm = o_coordinates.mul(o_state.o_scl_unit_canvas_image);
-        let o_trn_px = o_pixel_per_mm.mul(o_trn_mm);
-        let o_scl_px_canvas_image = o_pixel_per_mm.mul(o_state.o_scl_unit_canvas_image);
-        let o_trn_px_canvas_image = o_state.o_scl_unit_canvas_stickhelpborder.clone();
-        // dashed cut guiding lines
+    //     let o_coordinates = o_canvases.from_idx(n_idx_canvas);
+    //     let o_trn_mm = o_coordinates.mul(o_state.o_scl_unit_canvas_image);
+    //     let o_trn_px = o_pixel_per_mm.mul(o_trn_mm);
+    //     let o_scl_px_canvas_image = o_pixel_per_mm.mul(o_state.o_scl_unit_canvas_image);
+    //     let o_trn_px_canvas_image = o_state.o_scl_unit_canvas_stickhelpborder.clone();
+    //     // dashed cut guiding lines
 
-        let n_px_dashlength = 5*o_pixel_per_mm.n_x;
-        let n_px_dash_margin = n_px_dashlength
-        let n_px_linewidth = parseInt(2*o_pixel_per_mm.n_x);
-        let n_px_linelength = o_state.o_scl_px_canvas.n_y-o_scl_px_canvas_image.n_y;
-        o_ctx.strokeStyle = `red`;
-        o_ctx.beginPath();
-        o_ctx.setLineDash([n_px_dashlength, n_px_dash_margin]);
-        o_ctx.moveTo( o_state.o_scl_px, o_scl_px_canvas_image.n_y);
-        o_ctx.lineTo(0, o_state.o_scl_px_canvas.n_y);
-        o_ctx.lineWidth = n_px_linewidth;
-        o_ctx.stroke();
-        o_ctx.beginPath();
-        o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
-        o_ctx.lineTo(o_scl_px_canvas_image.n_x, o_state.o_scl_px_canvas.n_y);
-        o_ctx.lineWidth = n_px_linewidth;
-        o_ctx.stroke();
-        o_ctx.beginPath();
-        o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
-        o_ctx.lineTo(o_state.o_scl_px_canvas.n_x, o_scl_px_canvas_image.n_y);
-        o_ctx.lineWidth = n_px_linewidth;
-        o_ctx.stroke();
+    //     let n_px_dashlength = 5*o_pixel_per_mm.n_x;
+    //     let n_px_dash_margin = n_px_dashlength
+    //     let n_px_linewidth = parseInt(2*o_pixel_per_mm.n_x);
+    //     let n_px_linelength = o_state.o_scl_px_canvas.n_y-o_scl_px_canvas_image.n_y;
+    //     o_ctx.strokeStyle = `red`;
+    //     o_ctx.beginPath();
+    //     o_ctx.setLineDash([n_px_dashlength, n_px_dash_margin]);
+    //     o_ctx.moveTo( o_state.o_scl_px, o_scl_px_canvas_image.n_y);
+    //     o_ctx.lineTo(0, o_state.o_scl_px_canvas.n_y);
+    //     o_ctx.lineWidth = n_px_linewidth;
+    //     o_ctx.stroke();
+    //     o_ctx.beginPath();
+    //     o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
+    //     o_ctx.lineTo(o_scl_px_canvas_image.n_x, o_state.o_scl_px_canvas.n_y);
+    //     o_ctx.lineWidth = n_px_linewidth;
+    //     o_ctx.stroke();
+    //     o_ctx.beginPath();
+    //     o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
+    //     o_ctx.lineTo(o_state.o_scl_px_canvas.n_x, o_scl_px_canvas_image.n_y);
+    //     o_ctx.lineWidth = n_px_linewidth;
+    //     o_ctx.stroke();
 
-        let o_scl_px_canvas_image_current = o_pixel_per_mm.mul(o_state.o_scl_unit_canvas_image);
-        if(o_coordinates.n_y < o_canvases.n_y-1){
-
-            
-            // draw sticky help
-            //<i class="fa-solid fa-scissors"></i>
-            //<i class="fa-solid fa-ban"></i>
-            let s_char_fa_scissors = `\uf0c4`;
-            let s_char_fa_ban = `\uf05e`;
-            let s_char_fa_thumbsup = `\uf164`;
-            // let s_text = ` ${s_char_fa_ban} Do Not Cut ${s_char_fa_scissors} `;
-            let s_text = ` Do Not Cut ${s_char_fa_thumbsup} `;
-            let n_pixel_font_size = parseInt(o_pixel_per_mm.n_x*9) 
-            o_ctx.font = `${n_pixel_font_size}px "Font Awesome 5 Free"`; // Set the desired font
-            o_ctx.fillStyle = "red";
-            let o_text = o_ctx?.measureText('O');
-            let n_idx_letter = 0;
+    //     let o_scl_px_canvas_image_current = o_pixel_per_mm.mul(o_state.o_scl_unit_canvas_image);
+    //     if(o_coordinates.n_y < o_canvases.n_y-1){
 
             
-            for(let n_y = 0; n_y < o_state.o_scl_px_canvas.n_y; n_y+=n_pixel_font_size){
-                for(let n_x = 0; n_x < o_state.o_scl_px_canvas.n_x ; n_x+=o_text.width){
-                    n_idx_letter = (n_idx_letter+1) % s_text.length;
-                    o_ctx.fillText(
-                        // '\uf087',
-                        s_text[n_idx_letter],
-                        n_x, 
-                        n_y
-                        );
-                }
-            }
+    //         // draw sticky help
+    //         //<i class="fa-solid fa-scissors"></i>
+    //         //<i class="fa-solid fa-ban"></i>
+    //         let s_char_fa_scissors = `\uf0c4`;
+    //         let s_char_fa_ban = `\uf05e`;
+    //         let s_char_fa_thumbsup = `\uf164`;
+    //         // let s_text = ` ${s_char_fa_ban} Do Not Cut ${s_char_fa_scissors} `;
+    //         let s_text = ` Do Not Cut ${s_char_fa_thumbsup} `;
+    //         let n_pixel_font_size = parseInt(o_pixel_per_mm.n_x*9) 
+    //         o_ctx.font = `${n_pixel_font_size}px "Font Awesome 5 Free"`; // Set the desired font
+    //         o_ctx.fillStyle = "red";
+    //         let o_text = o_ctx?.measureText('O');
+    //         let n_idx_letter = 0;
 
             
-        }
+    //         for(let n_y = 0; n_y < o_state.o_scl_px_canvas.n_y; n_y+=n_pixel_font_size){
+    //             for(let n_x = 0; n_x < o_state.o_scl_px_canvas.n_x ; n_x+=o_text.width){
+    //                 n_idx_letter = (n_idx_letter+1) % s_text.length;
+    //                 o_ctx.fillText(
+    //                     // '\uf087',
+    //                     s_text[n_idx_letter],
+    //                     n_x, 
+    //                     n_y
+    //                     );
+    //             }
+    //         }
+
+            
+    //     }
 
 
-        o_ctx.drawImage(
-            o_state.o_img,
-            // Coordinates and size of the section of the image you want to draw
-            o_trn_px.n_x,
-            o_trn_px.n_y,
-            o_scl_px_canvas_image.n_x,
-            o_scl_px_canvas_image.n_y,
-            // Coordinates and size of where you want to place the image on the canvas
-            0,
-            0,
-            o_scl_px_canvas_image.n_x,
-            o_scl_px_canvas_image.n_y
-        );
+    //     o_ctx.drawImage(
+    //         o_state.o_img,
+    //         // Coordinates and size of the section of the image you want to draw
+    //         o_trn_px.n_x,
+    //         o_trn_px.n_y,
+    //         o_scl_px_canvas_image.n_x,
+    //         o_scl_px_canvas_image.n_y,
+    //         // Coordinates and size of where you want to place the image on the canvas
+    //         0,
+    //         0,
+    //         o_scl_px_canvas_image.n_x,
+    //         o_scl_px_canvas_image.n_y
+    //     );
 
-        o_div_a_o_canvas?.appendChild(o_canvas)
-        if((n_idx_canvas+1)%o_canvases.n_x == 0){
-            o_div_a_o_canvas?.appendChild(document.createElement('br'))
-        }
-    }
+    //     o_div_a_o_canvas?.appendChild(o_canvas)
+    //     if((n_idx_canvas+1)%o_canvases.n_x == 0){
+    //         o_div_a_o_canvas?.appendChild(document.createElement('br'))
+    //     }
+    // }
 
 }
 let f_o_jsh_label = function(){
@@ -471,7 +476,7 @@ let f_o_jsh_label = function(){
 let o_js__a_o_file = null;
 let o_js__preview_image = null;
 let o_js__everything = null;
-let o_js__o_scl_unit_poster = null;
+let o_js__o_scl_mm_poster = null;
 let o_js__n_dots_per_unit = null; 
 let o_js__n_dots_per_inch = null;
 let o_js__a_o_unit = null;
@@ -486,10 +491,50 @@ o_js__thicknesses = {
         return {
             a_o: [
                 [
-                    {s_prop: 'o_thickness_unit_print_border', s_text: 'print border margin (security margin)',},
-                    {s_prop: 'o_thickness_unit_glue_border', s_text: 'glue border margin (a help for gluing the paprs together)'},
+                    {s_prop: 'o_thickness_mm_print_border', s_text: 'print border margin (security margin)',},
+                    {s_prop: 'o_thickness_mm_glue_border', s_text: 'glue border margin (a help for gluing the paprs together)'},
                 ].map(
                     o=>{
+                        let b_onevalue_only = o_state[`b_onevalue_only_${o.s_prop}`];
+                        let o_js__values = {
+                            f_o_jsh: function(){
+                                return {
+                                    a_o: [
+                                        ...Array(
+                                            (b_onevalue_only) ? 1: 4
+                                        ).fill(0).map((n,n_idx)=>{
+                                            return {
+                                                s_tag: "input", 
+                                                type: "number", 
+                                                min: 0, 
+                                                oninput: (o_e)=>{
+                                                    let n = parseFloat(o_e.target.value)
+                                                    let n_mm = f_n_converted(
+                                                        n, 
+                                                        o_state.o_unit.s_name, 
+                                                        'millimeter',
+                                                    );
+
+                                                    if(b_onevalue_only){
+                                                        o_state[o.s_prop] = new O_vec4(
+                                                            n_mm
+                                                        )
+                                                    }else{
+                                                        o_state[o.s_prop][n_idx] = n_mm
+                                                    }
+                                                    f_update_all_o_scl_unit()
+                                                },
+                                                value: f_n_converted(
+                                                    o_state[o.s_prop][n_idx], 
+                                                    'millimeter',
+                                                    o_state.o_unit.s_name, 
+                                                ),
+                                            }
+                                        })
+                                    ]
+                                }
+                            }
+                        }
                         return {
                             a_o: [
                                 {
@@ -500,19 +545,21 @@ o_js__thicknesses = {
                                     f_o_jsh_label(), 
                                     {innerText: o.s_text}
                                 ), 
+                                o_js__values,
                                 {
-                                    s_tag: "input", 
-                                    type: "number", 
-                                    min: 0, 
-                                    oninput: (o_e)=>{
-                                        o_state[o.s_prop] = new O_vec4(
-                                            parseFloat(o_e.target.value)
-                                        )
-                                        f_update_all_o_scl_unit()
-                
-                                    },
-                                    value: o_state[o.s_prop][0]
-                                }, 
+                                    class: "clickable", 
+                                    onclick: ()=>{o_state[`b_onevalue_only_${o.s_prop}`] = !o_state[`b_onevalue_only_${o.s_prop}`];o_js__thicknesses._f_render() },
+                                    a_o: [
+                                        Object.assign(
+                                            f_o_jsh_label(), 
+                                            {innerText: 'separate values for each side'}
+                                        ), 
+                                        {
+                                            s_tag: 'i',
+                                            class:`fa-regular fa-square${(o_state[`b_onevalue_only_${o.s_prop}`])?'-check': ''}`
+                                        }
+                                    ]
+                                }
                             ]
                         }
                     }
@@ -592,6 +639,8 @@ o_js__a_o_unit = {
                                     o_js__n_dots_per_unit._f_render();
                                     o_js__n_dots_per_inch._f_render();
                                     o_js__a_o_paper_format._f_render();
+                                    o_js__thicknesses._f_render();
+                                    o_js__o_scl_mm_poster._f_render();
                                 }
                             }
                         )
@@ -715,7 +764,7 @@ o_js__a_o_file = {
             }
         }
     }
-    o_js__o_scl_unit_poster = {
+    o_js__o_scl_mm_poster = {
         f_o_jsh: ()=>{
             let o_s_axis_o_js= {
                 o_js__n_x: null,
@@ -739,15 +788,28 @@ o_js__a_o_file = {
                                     s_tag: 'input', 
                                     type: "number", 
                                     oninput: function(o_e){
-                                        let n_ratio = o_state.o_scl_unit_poster[s_axis_other] / o_state.o_scl_unit_poster[s_axis];
-                                        o_state.o_scl_unit_poster[s_axis] = o_e.target.value
-                                        o_state.o_scl_unit_poster[s_axis_other] = o_state.o_scl_unit_poster[s_axis]*n_ratio;
-        
+                                        let n = parseFloat(o_e.target.value);
+                                        let n_mm = f_n_converted(
+                                            n, 
+                                            o_state.o_unit.s_name,
+                                            'millimeter', 
+                                        );
+
+                                        o_state.o_scl_mm_poster[s_axis] = n_mm
+                                        
+                                        let n_ratio = o_state.o_scl_px_image_original[s_axis_other] / o_state.o_scl_px_image_original[s_axis];
+                                        o_state.o_scl_mm_poster[s_axis_other] = o_state.o_scl_mm_poster[s_axis]*n_ratio;        
+                                        console.log(n_ratio)
                                         o_s_axis_o_js[`o_js__${s_axis_other}`]._f_render();
                                         o_js__preview_image._f_render();
                                         f_update_a_o_canvas()
                                     }, 
-                                    value: o_state.o_scl_unit_poster[s_axis]
+                                    value: f_n_converted(
+                                        o_state.o_scl_mm_poster[s_axis], 
+                                        'millimeter', 
+                                        o_state.o_unit.s_name,
+                                    )
+                                    
                                 },  
                             ]
                         }
@@ -758,7 +820,7 @@ o_js__a_o_file = {
             
             o_s_axis_o_js.o_js__n_x = f_o_js__n_axis('n_x')
             o_s_axis_o_js.o_js__n_y = f_o_js__n_axis('n_y')
-            console.log(o_s_axis_o_js)
+
             return {
                 a_o:[
                     Object.assign(
@@ -791,7 +853,6 @@ o_js__a_o_file = {
                         readonly: 'readonly', 
                         value: o_state?.o_img?.height, 
                     },
-                    o_s_axis_o_js.o_js__n_y, 
                     Object.assign(
                         f_o_jsh_label(), 
                         {
@@ -813,13 +874,13 @@ o_js__a_o_file = {
                 ].join(';'),
                 a_o: [
                     {
-                        class: 'o_scl_unit_paper',
+                        class: 'o_scl_mm_paper',
                     }, 
                     {
-                        class: "o_scl_unit_image_and_glue_border o_trn_unit_image_and_glue_border",
+                        class: "o_scl_mm_image_and_glue_border o_trn_mm_image_and_glue_border",
                     },
                     {
-                        class: "o_scl_unit_image o_trn_unit_image",
+                        class: "o_scl_mm_image o_trn_mm_image",
                     },
                 ]
             }
@@ -846,7 +907,7 @@ o_js__a_o_file = {
                     o_js__thicknesses,
                     o_js__n_dots_per_unit,
                     o_js__n_dots_per_inch,
-                    o_js__o_scl_unit_poster,
+                    o_js__o_scl_mm_poster,
                     {
                         class: "inputs", 
                         a_o:[
@@ -872,9 +933,9 @@ o_js__a_o_file = {
                                             o_state.o_img.onload = function(){
                                                 o_state.o_scl_px_image_original = new O_vec2(o_state.o_img.width, o_state.o_img.height);
                                                 o_state.n_ratio_image_o_scl_x_to_y = o_state.o_img.width / o_state.o_img.height;
-                                                // o_state.o_scl.n_y = o_state.o_scl.n_x*(1./o_state.n_ratio_image_o_scl_x_to_y);
+                                                o_state.o_scl_mm_poster.n_y = o_state.o_scl_mm_poster.n_x*(1./o_state.n_ratio_image_o_scl_x_to_y);
                                                 o_js__preview_image._f_render()
-                                                o_js__o_scl_unit_poster._f_render()
+                                                o_js__o_scl_mm_poster._f_render()
                                                 window.o_js__preview_image = o_js__preview_image
                                                 f_update_a_o_canvas();
 
