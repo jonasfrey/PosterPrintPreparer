@@ -166,6 +166,8 @@ let f_n_converted = function(
 }
 let o_unit = o_unit__mm;
 let o_state = {
+    o_img_scissors: null,
+    o_img_glue: null,
     a_o_unit, 
     o_unit,
     o_file: null, 
@@ -178,14 +180,16 @@ let o_state = {
     a_o_paper_format: a_o_paper_format,
     o_paper_format: a_o_paper_format[0],
     n_dots_per_inch: 300,// the more common dpi value just for the user to enter just for convinience
-    n_dots_per_unit: 0, // will be calculated automatically, 
+    n_dots_per_mm: 0, // will be calculated automatically, 
     n_mm_per_inch: 25.4, 
     // a security margin because printers cannot print all paper area on the edges
     // vec4 -> (top, right, bottom, left);
     // the default unit is always millimeter, all values have to be stored as millimeter
     // and then can get calculated to the o_unit selected by the user
-    b_onevalue_only_o_thickness_mm_glue_border: true,
-    b_onevalue_only_o_thickness_mm_print_border: true,
+    s_color_glue_border: `rgba(255,255,255,1.0)`,
+    s_color_print_border: `rgba(255,255,255,1.0)`,
+    b_onevalue_only_glue_border: true,
+    b_onevalue_only_print_border: true,
     o_thickness_mm_print_border: new O_vec4(10),
     o_thickness_mm_glue_border: new O_vec4(10),//a border that will be used for gluing or overlaying the cut out papers
     // o_scl_mm_image_and_glue_border_and_print_border// this would be the same size as the current selected o_paper_format
@@ -205,19 +209,28 @@ let o_state = {
     o_el_style: null
 
 };
+let f_o_img = async function(s_url){
+    return new Promise((f_resolve)=>{
+        let s_name = s_url.split('/').pop().split('.').shift();
+        o_state[s_name] = new Image();
+        o_state[s_name].onload = function(){
+            return f_resolve(o_state[s_name]);
+        }
+        o_state[s_name].src = s_url;
+    })
 
+}
 window.o_state = o_state
 o_state.o_el_style = document.createElement('style');
 document.head.appendChild(o_state.o_el_style);
 o_state.o_el_style.innerHTML = ``
 
-let f_o_vec_px_from_unit = function(o){
-    // let n_pixel_per_unit = n_dots_per_unit//
-    return o.mul(
-        o_state.n_dots_per_unit
-    );
-}
 
+
+
+let f_o_vec_px_from_mm = function(o){
+    return o.mul(o_state.n_dots_per_mm)
+}
 let f_o_vec_current_unit_from_mm = function(o_vec){
     let a_n = o_vec.a_n_comp.map(
         n=>{
@@ -255,6 +268,7 @@ let f_update_all_o_scl_unit = function(){
         o_state.o_trn_mm_image_and_glue_border.n_x+o_state.o_thickness_mm_glue_border[3],
         o_state.o_trn_mm_image_and_glue_border.n_y+o_state.o_thickness_mm_glue_border[0],
     )
+
     let o_scl_mm_nor_image = o_state.o_scl_mm_image.div(
         o_state.o_paper_format.o_scl_mm
     )
@@ -268,6 +282,7 @@ let f_update_all_o_scl_unit = function(){
     let o_trn_mm_nor_image = o_state.o_trn_mm_image.div(
         o_state.o_paper_format.o_scl_mm
     )
+
 
 
 //     // var widthInPixels = widthInMM * mmToInches * dpi;
@@ -345,17 +360,18 @@ let f_update_all_o_scl_unit = function(){
         width: 100%;
         height: 100%;
         background:white;
-        border: red;
+        background: ${o_state.s_color_print_border};
+
     }
     .o_scl_mm_image{
         width: ${(o_scl_mm_nor_image.n_x)*100}%;
         height: ${(o_scl_mm_nor_image.n_y)*100}%;
-        background: blue;
+        background: ${o_state.s_color_glue_border};
     }
     .o_scl_mm_image_and_glue_border, .o_thickness_mm_glue_border{
         width: ${(o_scl_mm_nor_image_and_glue_border.n_x)*100}%;
         height: ${(o_scl_mm_nor_image_and_glue_border.n_y)*100}%;
-        background: red;
+
     }
 
     .o_trn_mm_image_and_glue_border{
@@ -369,102 +385,344 @@ let f_update_all_o_scl_unit = function(){
     `
 }
 
-let f_update_a_o_canvas = function(){
+let f_draw_dashed_line = function(
+    o_ctx, 
+    n_x_from, 
+    n_y_from, 
+    n_x_to,
+    n_y_to
+){
+    o_ctx.beginPath();
+    o_ctx.moveTo( 
+        n_x_from,
+        n_y_from
+    );
+    o_ctx.lineTo(
+        n_x_to,
+        n_y_to
+    );
+    o_ctx.stroke();
+}
 
-    // let o_div_a_o_canvas = document.querySelector('.a_o_canvas');
-    // o_div_a_o_canvas.innerHTML = '';
+let f_draw_pattern = async function(
+    o_ctx, 
+    s_url_img, 
+    n_trn_x, 
+    n_trn_y, 
+    n_scl_x,
+    n_scl_y
+){
+    let o_img = await f_o_img(s_url_img);
+    const o_pattern = o_ctx.createPattern(o_img, "repeat");
+    o_ctx.rect(
+        n_trn_x, 
+        n_trn_y, 
+        n_scl_x,
+        n_scl_y 
+    );
+    o_ctx.fillStyle = o_pattern
+    o_ctx.fill();
+}
 
-    // for(let n_idx_canvas = 0; n_idx_canvas < o_canvases.n_x*o_canvases.n_y; n_idx_canvas+=1){
-    //     let o_canvas = document.createElement('canvas');
-    //     o_canvas.width = o_state.o_scl_px_canvas.n_x;
-    //     o_canvas.height = o_state.o_scl_px_canvas.n_y;
-    //     o_canvas.style.width = o_state.o_scl_px_canvas.n_x*n_factor+'px'
-    //     o_canvas.style.height = o_state.o_scl_px_canvas.n_y*n_factor+'px'
-    //     let o_ctx = o_canvas.getContext('2d');
+let f_update_a_o_canvas = async function(){
 
-    //     let o_coordinates = o_canvases.from_idx(n_idx_canvas);
-    //     let o_trn_mm = o_coordinates.mul(o_state.o_scl_unit_canvas_image);
-    //     let o_trn_px = o_pixel_per_mm.mul(o_trn_mm);
-    //     let o_scl_px_canvas_image = o_pixel_per_mm.mul(o_state.o_scl_unit_canvas_image);
-    //     let o_trn_px_canvas_image = o_state.o_scl_unit_canvas_stickhelpborder.clone();
-    //     // dashed cut guiding lines
+    f_update_all_o_scl_unit();
 
-    //     let n_px_dashlength = 5*o_pixel_per_mm.n_x;
-    //     let n_px_dash_margin = n_px_dashlength
-    //     let n_px_linewidth = parseInt(2*o_pixel_per_mm.n_x);
-    //     let n_px_linelength = o_state.o_scl_px_canvas.n_y-o_scl_px_canvas_image.n_y;
-    //     o_ctx.strokeStyle = `red`;
-    //     o_ctx.beginPath();
-    //     o_ctx.setLineDash([n_px_dashlength, n_px_dash_margin]);
-    //     o_ctx.moveTo( o_state.o_scl_px, o_scl_px_canvas_image.n_y);
-    //     o_ctx.lineTo(0, o_state.o_scl_px_canvas.n_y);
-    //     o_ctx.lineWidth = n_px_linewidth;
-    //     o_ctx.stroke();
-    //     o_ctx.beginPath();
-    //     o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
-    //     o_ctx.lineTo(o_scl_px_canvas_image.n_x, o_state.o_scl_px_canvas.n_y);
-    //     o_ctx.lineWidth = n_px_linewidth;
-    //     o_ctx.stroke();
-    //     o_ctx.beginPath();
-    //     o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
-    //     o_ctx.lineTo(o_state.o_scl_px_canvas.n_x, o_scl_px_canvas_image.n_y);
-    //     o_ctx.lineWidth = n_px_linewidth;
-    //     o_ctx.stroke();
+    let o_div_a_o_canvas = document.querySelector('.a_o_canvas');
+    o_div_a_o_canvas.innerHTML = '';
 
-    //     let o_scl_px_canvas_image_current = o_pixel_per_mm.mul(o_state.o_scl_unit_canvas_image);
-    //     if(o_coordinates.n_y < o_canvases.n_y-1){
+    let o_canvases = o_state.o_scl_mm_poster.div(
+        o_state.o_scl_mm_image
+    );
+    let o_canvases_ceiled = o_canvases.ceil();
+
+
+    
+    let o_scl_px_poster = f_o_vec_px_from_mm(o_state.o_scl_mm_poster);
+    let o_scl_px_image = f_o_vec_px_from_mm(o_state.o_scl_mm_image);
+    let o_scl_px_image_and_glue_border = f_o_vec_px_from_mm(o_state.o_scl_mm_image_and_glue_border);
+    let o_scl_px_paper_format = f_o_vec_px_from_mm(o_state.o_paper_format.o_scl_mm);
+    let o_trn_px_image = f_o_vec_px_from_mm(o_state.o_trn_mm_image);
+    let o_trn_px_image_and_glue_border = f_o_vec_px_from_mm(o_state.o_trn_mm_image_and_glue_border);
+    console.log({o_trn_px_image_and_glue_border, o_trn_px_image})
+    let o_pixel_per_mm = o_state.o_scl_px_image_original.div(
+        o_state.o_scl_mm_poster
+    );
+    let o_thickness_px_glue_border = f_o_vec_px_from_mm(
+        o_state.o_thickness_mm_glue_border
+    )
+
+    let n_px_dashlength = 10;
+    let n_px_dash_margin = 10;
+
+
+    for(let n_idx_canvas = 0; n_idx_canvas < o_canvases_ceiled.n_x*o_canvases_ceiled.n_y; n_idx_canvas+=1){
+        // the image drawn onto the canvas might not fill out the entire space that is left
+        // let o_scl_px_canvas_image_current = f_o_vec_px_from_mm(o_state.o_scl_mm_o_scl_px_canvas_image_current);
+  
+        let o_coordinates = o_canvases_ceiled.from_idx(n_idx_canvas);
+        let o_px_per_subimage = o_state.o_scl_px_image_original.div(
+            o_canvases
+        );
+        console.log({o_px_per_subimage})
+        // let o_trn_mm = o_coordinates.mul(o_state.o_paper_format.o_scl_mm);
+        // let o_trn_mm = o_coordinates.mul(o_state.o_scl_mm_image);
+        let o_trn_px_on_original_image = o_px_per_subimage.mul(o_coordinates);
+        let o_scl_px_on_original_image = o_px_per_subimage;
+
+        let o_scl_px_on_original_image_left = o_state.o_scl_px_image_original.sub(
+            o_trn_px_on_original_image
+        )
+
+        let n_ratio = o_scl_px_image.div(o_scl_px_on_original_image);
+
+        console.log(
+            {
+                o_scl_px_on_original_image,
+                o_scl_px_image
+            }
+        )
+        // let o_scl_mm_on_original_image_left = o_scl_px_on_original_image_left.div(o_pixel_per_mm);
+        // let o_scl_px_image_left = f_o_vec_px_from_mm(o_scl_mm_on_original_image_left);
+
+        let o_scl_px_image_left = o_scl_px_on_original_image_left.mul(n_ratio);
+        // let o_scl_px_image_left = o_scl_px_on_original_image_left;
+
+        let o_canvas = document.createElement('canvas');
+        o_canvas.width = o_scl_px_paper_format.n_x;
+        o_canvas.height = o_scl_px_paper_format.n_y;
+
+
+        o_canvas.style.width = `${Math.floor(100/o_canvases_ceiled.n_x)}%`;
+        o_canvas.style.height = `auto`;
+        let o_ctx = o_canvas.getContext('2d');
+        o_ctx.setLineDash([n_px_dashlength, n_px_dash_margin]);
+        o_ctx.lineWidth = 2;
+        o_ctx.fillStyle = o_state.s_color_print_border;
+        o_ctx.fillRect(0, 0, o_canvas.width, o_canvas.height);
+
+
+        o_ctx.fillStyle = o_state.s_color_glue_border;
+        o_ctx.fillRect(
+            o_trn_px_image_and_glue_border.n_x,
+            o_trn_px_image_and_glue_border.n_y,
+            o_scl_px_image_and_glue_border.n_x,
+            o_scl_px_image_and_glue_border.n_y,
+        );
+        o_ctx.fill();
+
+        let b_last_row = (o_coordinates.n_y+1) == o_canvases_ceiled.n_y;
+        let b_last_col = (o_coordinates.n_x+1) == o_canvases_ceiled.n_x;
+
+        let o_scl_px_image_part = new O_vec2(
+            (b_last_col) ? o_scl_px_image_left.n_x: o_scl_px_image.n_x, 
+            (b_last_row) ? o_scl_px_image_left.n_y: o_scl_px_image.n_y,
+        );
+
+
+        let n_x_image_start = o_trn_px_image.n_x;
+        let n_y_image_start = o_trn_px_image.n_y;
+        let n_x_image_end = n_x_image_start + o_scl_px_image_part.n_x;
+        let n_y_image_end = n_y_image_start + o_scl_px_image_part.n_y;
+
+        f_draw_dashed_line(
+            o_ctx, 
+            o_trn_px_image_and_glue_border.n_x,
+            n_x_image_start,
+            o_trn_px_image_and_glue_border.n_x+o_scl_px_image_and_glue_border.n_x,
+            n_y_image_start
+        );
+        f_draw_dashed_line(
+            o_ctx, 
+            n_x_image_start,
+            o_trn_px_image_and_glue_border.n_y,
+            n_x_image_start,
+            o_trn_px_image_and_glue_border.n_y+o_scl_px_image_and_glue_border.n_y
+        );
+
+        if(b_last_row){
+            f_draw_dashed_line(
+                o_ctx, 
+                o_trn_px_image_and_glue_border.n_x,
+                o_trn_px_image.n_y+o_scl_px_image_left.n_y,
+                o_trn_px_image_and_glue_border.n_x+o_scl_px_image_and_glue_border.n_x,
+                o_trn_px_image.n_y+o_scl_px_image_left.n_y
+            )
+        }
+        if(b_last_col){
+            f_draw_dashed_line(
+                o_ctx, 
+                o_trn_px_image.n_x+o_scl_px_image_left.n_x, 
+                o_trn_px_image_and_glue_border.n_y,
+                o_trn_px_image.n_x+o_scl_px_image_left.n_x, 
+                o_trn_px_image_and_glue_border.n_y+o_scl_px_image_and_glue_border.n_y,
+            )
+        }
+        if(b_last_col){
+
+            console.log(
+                n_x_image_start, 
+                n_y_image_end, 
+                o_scl_px_image_part.n_x
+            )
+        }
+        if(!b_last_row){
+
+            f_draw_pattern(
+                o_ctx,
+                './glue.png',
+                n_x_image_start, 
+                n_y_image_end, 
+                o_scl_px_image_part.n_x,
+                o_thickness_px_glue_border[2]
+            )
+        }
+        if(!b_last_col){
+            f_draw_pattern(
+                o_ctx,
+                './glue.png',
+                n_x_image_end, 
+                n_y_image_start, 
+                o_thickness_px_glue_border[1],
+                o_scl_px_image_part.n_y,
+            )
+        }
+
+        // if((o_coordinates.n_y+1) != o_canvases.n_y){
+        //     f_draw_pattern(
+        //         o_ctx,
+        //         './glue.png',
+        //         o_trn_px_image.n_x, 
+        //         n_trn_y, 
+        //         n_scl_x,
+        //         n_scl_y
+        //     )
+        // }
+        // f_draw_dashed_line(
+        //     o_ctx, 
+        //     o_trn_px_image.n_x,
+        //     o_trn_px_image_and_glue_border.n_y,
+        //     o_trn_px_image.n_x,
+        //     o_scl_px_image_and_glue_border.n_y
+        // )
+        // if((o_coordinates.n_y+1) == o_canvases.n_y){
+        //     f_draw_dashed_line(
+        //         o_ctx,
+        //         0,
+        //         o_trn_px_image.n_y+o_scl_px_on_original_image_left.n_y,
+        //         o_canvas.width,
+        //         o_trn_px_image.n_y+o_scl_px_on_original_image_left.n_y,
+        //     )
+        // }
+
+
+
+
+        // o_ctx.beginPath();
+        // o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
+        // o_ctx.lineTo(o_scl_px_canvas_image.n_x, o_state.o_scl_px_canvas.n_y);
+        // o_ctx.lineWidth = n_px_linewidth;
+        // o_ctx.stroke();
+        // o_ctx.beginPath();
+        // o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
+        // o_ctx.lineTo(o_state.o_scl_px_canvas.n_x, o_scl_px_canvas_image.n_y);
+        // o_ctx.lineWidth = n_px_linewidth;
+        // o_ctx.stroke();
+
+
+        // let o_img = await f_o_img('./scissors.png');
+        // const o_pattern = o_ctx.createPattern(o_img, "repeat");
+        // o_ctx.rect(0, 0, o_canvas.width, o_canvas.height);
+        // o_ctx.fillStyle = 'white';
+        // o_ctx.fill();
+
+        // o_ctx.rect(
+        //     ...o_trn_px_image_and_glue_border.a_n_comp,
+        //     ...o_scl_px_image_and_glue_border.a_n_comp
+        // );
+        // o_ctx.fillStyle = o_pattern;
+        // o_ctx.fill();
+
+
+        // console.log(o_scl_px_on_original_image_left)
+
+        // dashed cut guiding lines
+
+        // let n_px_dashlength = 5*o_pixel_per_mm.n_x;
+        // let n_px_dash_margin = n_px_dashlength
+        // let n_px_linewidth = parseInt(2*o_pixel_per_mm.n_x);
+        // let n_px_linelength = o_state.o_scl_px_canvas.n_y-o_scl_px_canvas_image.n_y;
+        // o_ctx.strokeStyle = `red`;
+        // o_ctx.beginPath();
+        // o_ctx.setLineDash([n_px_dashlength, n_px_dash_margin]);
+        // o_ctx.moveTo( o_state.o_scl_px, o_scl_px_canvas_image.n_y);
+        // o_ctx.lineTo(0, o_state.o_scl_px_canvas.n_y);
+        // o_ctx.lineWidth = n_px_linewidth;
+        // o_ctx.stroke();
+        // o_ctx.beginPath();
+        // o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
+        // o_ctx.lineTo(o_scl_px_canvas_image.n_x, o_state.o_scl_px_canvas.n_y);
+        // o_ctx.lineWidth = n_px_linewidth;
+        // o_ctx.stroke();
+        // o_ctx.beginPath();
+        // o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
+        // o_ctx.lineTo(o_state.o_scl_px_canvas.n_x, o_scl_px_canvas_image.n_y);
+        // o_ctx.lineWidth = n_px_linewidth;
+        // o_ctx.stroke();
+
+        // let o_scl_px_canvas_image_current = o_pixel_per_mm.mul(o_state.o_scl_unit_canvas_image);
+        // if(o_coordinates.n_y < o_canvases.n_y-1){
 
             
-    //         // draw sticky help
-    //         //<i class="fa-solid fa-scissors"></i>
-    //         //<i class="fa-solid fa-ban"></i>
-    //         let s_char_fa_scissors = `\uf0c4`;
-    //         let s_char_fa_ban = `\uf05e`;
-    //         let s_char_fa_thumbsup = `\uf164`;
-    //         // let s_text = ` ${s_char_fa_ban} Do Not Cut ${s_char_fa_scissors} `;
-    //         let s_text = ` Do Not Cut ${s_char_fa_thumbsup} `;
-    //         let n_pixel_font_size = parseInt(o_pixel_per_mm.n_x*9) 
-    //         o_ctx.font = `${n_pixel_font_size}px "Font Awesome 5 Free"`; // Set the desired font
-    //         o_ctx.fillStyle = "red";
-    //         let o_text = o_ctx?.measureText('O');
-    //         let n_idx_letter = 0;
+        //     // draw sticky help
+        //     //<i class="fa-solid fa-scissors"></i>
+        //     //<i class="fa-solid fa-ban"></i>
+        //     let s_char_fa_scissors = `\uf0c4`;
+        //     let s_char_fa_ban = `\uf05e`;
+        //     let s_char_fa_thumbsup = `\uf164`;
+        //     // let s_text = ` ${s_char_fa_ban} Do Not Cut ${s_char_fa_scissors} `;
+        //     let s_text = ` Do Not Cut ${s_char_fa_thumbsup} `;
+        //     let n_pixel_font_size = parseInt(o_pixel_per_mm.n_x*9) 
+        //     o_ctx.font = `${n_pixel_font_size}px "Font Awesome 5 Free"`; // Set the desired font
+        //     o_ctx.fillStyle = "red";
+        //     let o_text = o_ctx?.measureText('O');
+        //     let n_idx_letter = 0;
 
             
-    //         for(let n_y = 0; n_y < o_state.o_scl_px_canvas.n_y; n_y+=n_pixel_font_size){
-    //             for(let n_x = 0; n_x < o_state.o_scl_px_canvas.n_x ; n_x+=o_text.width){
-    //                 n_idx_letter = (n_idx_letter+1) % s_text.length;
-    //                 o_ctx.fillText(
-    //                     // '\uf087',
-    //                     s_text[n_idx_letter],
-    //                     n_x, 
-    //                     n_y
-    //                     );
-    //             }
-    //         }
+        //     for(let n_y = 0; n_y < o_state.o_scl_px_canvas.n_y; n_y+=n_pixel_font_size){
+        //         for(let n_x = 0; n_x < o_state.o_scl_px_canvas.n_x ; n_x+=o_text.width){
+        //             n_idx_letter = (n_idx_letter+1) % s_text.length;
+        //             o_ctx.fillText(
+        //                 // '\uf087',
+        //                 s_text[n_idx_letter],
+        //                 n_x, 
+        //                 n_y
+        //                 );
+        //         }
+        //     }
 
             
-    //     }
+        // }
 
+        console.log({o_scl_px_image})
+        o_ctx.drawImage(
+            o_state.o_img,
+            // Coordinates and size of the section of the image you want to draw
+            o_trn_px_on_original_image.n_x,
+            o_trn_px_on_original_image.n_y,
+            o_scl_px_on_original_image.n_x,
+            o_scl_px_on_original_image.n_y,
+            // Coordinates and size of where you want to place the image on the canvas
+            o_trn_px_image.n_x,
+            o_trn_px_image.n_y,
+            o_scl_px_image.n_x,
+            o_scl_px_image.n_y,
 
-    //     o_ctx.drawImage(
-    //         o_state.o_img,
-    //         // Coordinates and size of the section of the image you want to draw
-    //         o_trn_px.n_x,
-    //         o_trn_px.n_y,
-    //         o_scl_px_canvas_image.n_x,
-    //         o_scl_px_canvas_image.n_y,
-    //         // Coordinates and size of where you want to place the image on the canvas
-    //         0,
-    //         0,
-    //         o_scl_px_canvas_image.n_x,
-    //         o_scl_px_canvas_image.n_y
-    //     );
+        );
 
-    //     o_div_a_o_canvas?.appendChild(o_canvas)
-    //     if((n_idx_canvas+1)%o_canvases.n_x == 0){
-    //         o_div_a_o_canvas?.appendChild(document.createElement('br'))
-    //     }
-    // }
+        o_div_a_o_canvas?.appendChild(o_canvas)
+
+    }
 
 }
 let f_o_jsh_label = function(){
@@ -477,7 +735,7 @@ let o_js__a_o_file = null;
 let o_js__preview_image = null;
 let o_js__everything = null;
 let o_js__o_scl_mm_poster = null;
-let o_js__n_dots_per_unit = null; 
+let o_js__n_dots_per_mm = null; 
 let o_js__n_dots_per_inch = null;
 let o_js__a_o_unit = null;
 let o_js__thicknesses = null;
@@ -491,11 +749,15 @@ o_js__thicknesses = {
         return {
             a_o: [
                 [
-                    {s_prop: 'o_thickness_mm_print_border', s_text: 'print border margin (security margin)',},
-                    {s_prop: 'o_thickness_mm_glue_border', s_text: 'glue border margin (a help for gluing the paprs together)'},
+                    {s_prop: 'print_border', s_text: 'print border margin (security margin)',},
+                    {s_prop: 'glue_border', s_text: 'glue border margin (a help for gluing the paprs together)'},
                 ].map(
                     o=>{
-                        let b_onevalue_only = o_state[`b_onevalue_only_${o.s_prop}`];
+                        let s_prop_thickness = `o_thickness_mm_${o.s_prop}`
+                        let s_prop_boolean = `b_onevalue_only_${o.s_prop}`;
+                        let s_prop_color = `s_color_${o.s_prop}`;
+
+                        let b_onevalue_only = o_state[s_prop_boolean];
                         let o_js__values = {
                             f_o_jsh: function(){
                                 return {
@@ -516,16 +778,16 @@ o_js__thicknesses = {
                                                     );
 
                                                     if(b_onevalue_only){
-                                                        o_state[o.s_prop] = new O_vec4(
+                                                        o_state[s_prop_thickness] = new O_vec4(
                                                             n_mm
                                                         )
                                                     }else{
-                                                        o_state[o.s_prop][n_idx] = n_mm
+                                                        o_state[s_prop_thickness][n_idx] = n_mm
                                                     }
                                                     f_update_all_o_scl_unit()
                                                 },
                                                 value: f_n_converted(
-                                                    o_state[o.s_prop][n_idx], 
+                                                    o_state[s_prop_thickness][n_idx], 
                                                     'millimeter',
                                                     o_state.o_unit.s_name, 
                                                 ),
@@ -538,8 +800,20 @@ o_js__thicknesses = {
                         return {
                             a_o: [
                                 {
-                                    class: o.s_prop,
-                                    style: 'display:inline-block;width:1rem;height:1rem'
+                                    f_o_jsh: function(){
+                                        return {
+                                            s_tag: 'input', 
+                                            type: "color",
+                                            oninput: function(o_e, o_js){
+                                                console.log(arguments)
+                                                o_state[s_prop_color] = o_e.target.value
+                                                f_update_all_o_scl_unit();
+                                                o_js._f_update();
+                                            },
+                                            class: o.s_prop,
+                                            style: `display:inline-block;background-color:${o_state[s_prop_color]}`
+                                        }
+                                    }
                                 },
                                 Object.assign(
                                     f_o_jsh_label(), 
@@ -548,7 +822,7 @@ o_js__thicknesses = {
                                 o_js__values,
                                 {
                                     class: "clickable", 
-                                    onclick: ()=>{o_state[`b_onevalue_only_${o.s_prop}`] = !o_state[`b_onevalue_only_${o.s_prop}`];o_js__thicknesses._f_render() },
+                                    onclick: ()=>{o_state[s_prop_boolean] = !o_state[s_prop_boolean];o_js__thicknesses._f_render() },
                                     a_o: [
                                         Object.assign(
                                             f_o_jsh_label(), 
@@ -556,7 +830,7 @@ o_js__thicknesses = {
                                         ), 
                                         {
                                             s_tag: 'i',
-                                            class:`fa-regular fa-square${(o_state[`b_onevalue_only_${o.s_prop}`])?'-check': ''}`
+                                            class:`fa-regular fa-square${(o_state[s_prop_boolean])?'-check': ''}`
                                         }
                                     ]
                                 }
@@ -598,7 +872,7 @@ o_js__a_o_paper_format = {
                                     // console.log('input was triggered'), 
                                     f_oninput_original(...arguments)
 
-                                    o_js__n_dots_per_unit._f_render();
+                                    o_js__n_dots_per_mm._f_render();
                                     o_js__n_dots_per_inch._f_render();
                                     o_js__canvas_preview._f_render();
                                     
@@ -636,7 +910,7 @@ o_js__a_o_unit = {
                                     // console.log('input was triggered'), 
                                     f_oninput_original(...arguments)
 
-                                    o_js__n_dots_per_unit._f_render();
+                                    o_js__n_dots_per_mm._f_render();
                                     o_js__n_dots_per_inch._f_render();
                                     o_js__a_o_paper_format._f_render();
                                     o_js__thicknesses._f_render();
@@ -650,28 +924,28 @@ o_js__a_o_unit = {
         }
     }
 }
-o_js__n_dots_per_unit = {
+o_js__n_dots_per_mm = {
     f_o_jsh:function(){
         return {
             a_o: [
                 Object.assign(
                     f_o_jsh_label(), 
-                    {innerText: 'Dots per Unit (dpu)'}
+                    {innerText: 'Dots per millimeter (dpm?)'}
                 ), 
                 {
                     s_tag: "input",
                     type: "number",
                     min: 1,
                     oninput: function(o_e){
-                        o_state.n_dots_per_unit = o_e.target.value
+                        o_state.n_dots_per_mm = o_e.target.value
                         o_state.n_dots_per_inch = f_n_converted(
-                            o_state.n_dots_per_unit, 
+                            o_state.n_dots_per_mm, 
                             o_state.o_unit.s_name, 
                             'inch'
                         );
                         o_js__n_dots_per_inch._f_render()
                     }, 
-                    value: o_state.n_dots_per_unit
+                    value: o_state.n_dots_per_mm
                 }
             ]
         }
@@ -679,10 +953,10 @@ o_js__n_dots_per_unit = {
 }
 
 
-let f_update_n_dots_per_unit = function(){
+let f_update_n_dots_per_mm = function(){
     let o_unit__inch = o_state.a_o_unit.find(o=>o.s_name == 'inch');
     let n_factor = o_state.o_unit.n_millimeter / o_unit__inch.n_millimeter
-    o_state.n_dots_per_unit = o_state.n_dots_per_inch * n_factor;
+    o_state.n_dots_per_mm = o_state.n_dots_per_inch * n_factor;
 }
 o_js__n_dots_per_inch = {
     f_o_jsh:function(){
@@ -699,8 +973,8 @@ o_js__n_dots_per_inch = {
                     oninput: function(o_e){
 
                         o_state.n_dots_per_inch = o_e.target.value
-                        o_state.n_dots_per_unit = f_n_converted(
-                            o_state.n_dots_per_unit, 
+                        o_state.n_dots_per_mm = f_n_converted(
+                            o_state.n_dots_per_mm, 
                             'inch',
                             o_state.o_unit.s_name, 
                         );
@@ -875,12 +1149,15 @@ o_js__a_o_file = {
                 a_o: [
                     {
                         class: 'o_scl_mm_paper',
+                        innerText: 'paper / o_scl_mm_paper'
                     }, 
                     {
                         class: "o_scl_mm_image_and_glue_border o_trn_mm_image_and_glue_border",
+                        innerText: 'security distance / o_scl_mm_image_and_glue_border'
                     },
                     {
                         class: "o_scl_mm_image o_trn_mm_image",
+                        innerText: 'canvas image / o_scl_mm_image'
                     },
                 ]
             }
@@ -905,7 +1182,7 @@ o_js__a_o_file = {
                     o_js__a_o_unit,
                     o_js__canvas_preview,
                     o_js__thicknesses,
-                    o_js__n_dots_per_unit,
+                    o_js__n_dots_per_mm,
                     o_js__n_dots_per_inch,
                     o_js__o_scl_mm_poster,
                     {
@@ -984,7 +1261,7 @@ let o = f_o_html__and_make_renderable(
 );
 document.body.appendChild(o)
 //after init
-f_update_n_dots_per_unit()
-o_js__n_dots_per_unit._f_render()
+f_update_n_dots_per_mm()
+o_js__n_dots_per_mm._f_render()
 
 f_update_all_o_scl_unit()
