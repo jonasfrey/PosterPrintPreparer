@@ -13,17 +13,34 @@ import {
 import {
     f_o_html__and_make_renderable,
     f_o_jsh__select
-} from "https://deno.land/x/f_o_html_from_o_js@2.0/mod.js"
+} from "https://deno.land/x/f_o_html_from_o_js@2.1/mod.js"
 
-  // o_variables.n_rem_font_size_base = 1.2
-  f_add_css(
-    f_s_css_from_o_variables(
-      o_variables
-    )
-  );
-  f_add_css(
-    `https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css`
-  )
+// o_variables.n_rem_font_size_base = 1.2
+f_add_css(
+f_s_css_from_o_variables(
+    o_variables
+)
+);
+f_add_css(
+`https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css`
+)
+f_add_css(
+    `
+    body{
+        margin:0;
+        padding:0;
+    }
+    `
+)
+let o_o_js = {};
+let f_o_js_from_s_name = function(s_name, o){
+    if(!o_o_js[s_name]){
+        o_o_js[s_name] = o
+    }else{
+        return o_o_js[s_name]
+    }
+    return o
+}
 
 class O_file{
     constructor(
@@ -166,6 +183,8 @@ let f_n_converted = function(
 }
 let o_unit = o_unit__mm;
 let o_state = {
+    b_display_advanced: false,
+    o_img_human_size_comparison: null, 
     o_img_scissors: null,
     o_img_glue: null,
     a_o_unit, 
@@ -212,14 +231,19 @@ let o_state = {
 let f_o_img = async function(s_url){
     return new Promise((f_resolve)=>{
         let s_name = s_url.split('/').pop().split('.').shift();
-        o_state[s_name] = new Image();
-        o_state[s_name].onload = function(){
-            return f_resolve(o_state[s_name]);
+        o_state[`o_img_${s_name}`] = {};
+
+        o_state[`o_img_${s_name}`] = new Image();
+        o_state[`o_img_${s_name}`].onload = function(){
+            return f_resolve(o_state[`o_img_${s_name}`]);
         }
-        o_state[s_name].src = s_url;
+        o_state[`o_img_${s_name}`].src = s_url;
     })
 
 }
+let o_img = f_o_img('./human_size_comparison.png');
+console.log(o_img)
+
 window.o_state = o_state
 o_state.o_el_style = document.createElement('style');
 document.head.appendChild(o_state.o_el_style);
@@ -325,13 +349,6 @@ let f_update_all_o_scl_unit = function(){
             page-break-before: always; /* Force page break before each canvas */
         }
 
-    }
-    /* CSS for screen display */
-    @media screen {
-        body {
-            text-align: center;
-            margin-top: 20px;
-        }
     }
     .a_o_canvas{
         /*
@@ -501,7 +518,6 @@ let f_update_a_o_canvas = async function(){
         o_ctx.fillStyle = o_state.s_color_print_border;
         o_ctx.fillRect(0, 0, o_canvas.width, o_canvas.height);
 
-
         o_ctx.fillStyle = o_state.s_color_glue_border;
         o_ctx.fillRect(
             o_trn_px_image_and_glue_border.n_x,
@@ -588,123 +604,8 @@ let f_update_a_o_canvas = async function(){
             )
         }
 
-        // if((o_coordinates.n_y+1) != o_canvases.n_y){
-        //     f_draw_pattern(
-        //         o_ctx,
-        //         './glue.png',
-        //         o_trn_px_image.n_x, 
-        //         n_trn_y, 
-        //         n_scl_x,
-        //         n_scl_y
-        //     )
-        // }
-        // f_draw_dashed_line(
-        //     o_ctx, 
-        //     o_trn_px_image.n_x,
-        //     o_trn_px_image_and_glue_border.n_y,
-        //     o_trn_px_image.n_x,
-        //     o_scl_px_image_and_glue_border.n_y
-        // )
-        // if((o_coordinates.n_y+1) == o_canvases.n_y){
-        //     f_draw_dashed_line(
-        //         o_ctx,
-        //         0,
-        //         o_trn_px_image.n_y+o_scl_px_on_original_image_left.n_y,
-        //         o_canvas.width,
-        //         o_trn_px_image.n_y+o_scl_px_on_original_image_left.n_y,
-        //     )
-        // }
 
-
-
-
-        // o_ctx.beginPath();
-        // o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
-        // o_ctx.lineTo(o_scl_px_canvas_image.n_x, o_state.o_scl_px_canvas.n_y);
-        // o_ctx.lineWidth = n_px_linewidth;
-        // o_ctx.stroke();
-        // o_ctx.beginPath();
-        // o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
-        // o_ctx.lineTo(o_state.o_scl_px_canvas.n_x, o_scl_px_canvas_image.n_y);
-        // o_ctx.lineWidth = n_px_linewidth;
-        // o_ctx.stroke();
-
-
-        // let o_img = await f_o_img('./scissors.png');
-        // const o_pattern = o_ctx.createPattern(o_img, "repeat");
-        // o_ctx.rect(0, 0, o_canvas.width, o_canvas.height);
-        // o_ctx.fillStyle = 'white';
-        // o_ctx.fill();
-
-        // o_ctx.rect(
-        //     ...o_trn_px_image_and_glue_border.a_n_comp,
-        //     ...o_scl_px_image_and_glue_border.a_n_comp
-        // );
-        // o_ctx.fillStyle = o_pattern;
-        // o_ctx.fill();
-
-
-        // console.log(o_scl_px_on_original_image_left)
-
-        // dashed cut guiding lines
-
-        // let n_px_dashlength = 5*o_pixel_per_mm.n_x;
-        // let n_px_dash_margin = n_px_dashlength
-        // let n_px_linewidth = parseInt(2*o_pixel_per_mm.n_x);
-        // let n_px_linelength = o_state.o_scl_px_canvas.n_y-o_scl_px_canvas_image.n_y;
-        // o_ctx.strokeStyle = `red`;
-        // o_ctx.beginPath();
-        // o_ctx.setLineDash([n_px_dashlength, n_px_dash_margin]);
-        // o_ctx.moveTo( o_state.o_scl_px, o_scl_px_canvas_image.n_y);
-        // o_ctx.lineTo(0, o_state.o_scl_px_canvas.n_y);
-        // o_ctx.lineWidth = n_px_linewidth;
-        // o_ctx.stroke();
-        // o_ctx.beginPath();
-        // o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
-        // o_ctx.lineTo(o_scl_px_canvas_image.n_x, o_state.o_scl_px_canvas.n_y);
-        // o_ctx.lineWidth = n_px_linewidth;
-        // o_ctx.stroke();
-        // o_ctx.beginPath();
-        // o_ctx.moveTo(o_scl_px_canvas_image.n_x, o_scl_px_canvas_image.n_y);
-        // o_ctx.lineTo(o_state.o_scl_px_canvas.n_x, o_scl_px_canvas_image.n_y);
-        // o_ctx.lineWidth = n_px_linewidth;
-        // o_ctx.stroke();
-
-        // let o_scl_px_canvas_image_current = o_pixel_per_mm.mul(o_state.o_scl_unit_canvas_image);
-        // if(o_coordinates.n_y < o_canvases.n_y-1){
-
-            
-        //     // draw sticky help
-        //     //<i class="fa-solid fa-scissors"></i>
-        //     //<i class="fa-solid fa-ban"></i>
-        //     let s_char_fa_scissors = `\uf0c4`;
-        //     let s_char_fa_ban = `\uf05e`;
-        //     let s_char_fa_thumbsup = `\uf164`;
-        //     // let s_text = ` ${s_char_fa_ban} Do Not Cut ${s_char_fa_scissors} `;
-        //     let s_text = ` Do Not Cut ${s_char_fa_thumbsup} `;
-        //     let n_pixel_font_size = parseInt(o_pixel_per_mm.n_x*9) 
-        //     o_ctx.font = `${n_pixel_font_size}px "Font Awesome 5 Free"`; // Set the desired font
-        //     o_ctx.fillStyle = "red";
-        //     let o_text = o_ctx?.measureText('O');
-        //     let n_idx_letter = 0;
-
-            
-        //     for(let n_y = 0; n_y < o_state.o_scl_px_canvas.n_y; n_y+=n_pixel_font_size){
-        //         for(let n_x = 0; n_x < o_state.o_scl_px_canvas.n_x ; n_x+=o_text.width){
-        //             n_idx_letter = (n_idx_letter+1) % s_text.length;
-        //             o_ctx.fillText(
-        //                 // '\uf087',
-        //                 s_text[n_idx_letter],
-        //                 n_x, 
-        //                 n_y
-        //                 );
-        //         }
-        //     }
-
-            
-        // }
-
-        console.log({o_scl_px_image})
+        // console.log({o_scl_px_image})
         o_ctx.drawImage(
             o_state.o_img,
             // Coordinates and size of the section of the image you want to draw
@@ -731,267 +632,15 @@ let f_o_jsh_label = function(){
         class: "pr-2"
     }
 }
-let o_js__a_o_file = null;
-let o_js__preview_image = null;
-let o_js__everything = null;
-let o_js__o_scl_mm_poster = null;
-let o_js__n_dots_per_mm = null; 
-let o_js__n_dots_per_inch = null;
-let o_js__a_o_unit = null;
-let o_js__thicknesses = null;
-
-
-let o_js__canvas_preview = null;
-let o_js__a_o_paper_format = null;
-
-o_js__thicknesses = {
-    f_o_jsh: function(){
-        return {
-            a_o: [
-                [
-                    {s_prop: 'print_border', s_text: 'print border margin (security margin)',},
-                    {s_prop: 'glue_border', s_text: 'glue border margin (a help for gluing the paprs together)'},
-                ].map(
-                    o=>{
-                        let s_prop_thickness = `o_thickness_mm_${o.s_prop}`
-                        let s_prop_boolean = `b_onevalue_only_${o.s_prop}`;
-                        let s_prop_color = `s_color_${o.s_prop}`;
-
-                        let b_onevalue_only = o_state[s_prop_boolean];
-                        let o_js__values = {
-                            f_o_jsh: function(){
-                                return {
-                                    a_o: [
-                                        ...Array(
-                                            (b_onevalue_only) ? 1: 4
-                                        ).fill(0).map((n,n_idx)=>{
-                                            return {
-                                                s_tag: "input", 
-                                                type: "number", 
-                                                min: 0, 
-                                                oninput: (o_e)=>{
-                                                    let n = parseFloat(o_e.target.value)
-                                                    let n_mm = f_n_converted(
-                                                        n, 
-                                                        o_state.o_unit.s_name, 
-                                                        'millimeter',
-                                                    );
-
-                                                    if(b_onevalue_only){
-                                                        o_state[s_prop_thickness] = new O_vec4(
-                                                            n_mm
-                                                        )
-                                                    }else{
-                                                        o_state[s_prop_thickness][n_idx] = n_mm
-                                                    }
-                                                    f_update_all_o_scl_unit()
-                                                },
-                                                value: f_n_converted(
-                                                    o_state[s_prop_thickness][n_idx], 
-                                                    'millimeter',
-                                                    o_state.o_unit.s_name, 
-                                                ),
-                                            }
-                                        })
-                                    ]
-                                }
-                            }
-                        }
-                        return {
-                            a_o: [
-                                {
-                                    f_o_jsh: function(){
-                                        return {
-                                            s_tag: 'input', 
-                                            type: "color",
-                                            oninput: function(o_e, o_js){
-                                                console.log(arguments)
-                                                o_state[s_prop_color] = o_e.target.value
-                                                f_update_all_o_scl_unit();
-                                                o_js._f_update();
-                                            },
-                                            class: o.s_prop,
-                                            style: `display:inline-block;background-color:${o_state[s_prop_color]}`
-                                        }
-                                    }
-                                },
-                                Object.assign(
-                                    f_o_jsh_label(), 
-                                    {innerText: o.s_text}
-                                ), 
-                                o_js__values,
-                                {
-                                    class: "clickable", 
-                                    onclick: ()=>{o_state[s_prop_boolean] = !o_state[s_prop_boolean];o_js__thicknesses._f_render() },
-                                    a_o: [
-                                        Object.assign(
-                                            f_o_jsh_label(), 
-                                            {innerText: 'separate values for each side'}
-                                        ), 
-                                        {
-                                            s_tag: 'i',
-                                            class:`fa-regular fa-square${(o_state[s_prop_boolean])?'-check': ''}`
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    }
-                )
-            ]
-        }
-    }
-}
-
-
-o_js__a_o_paper_format = {
-    f_o_jsh: function(){
-        return {
-            a_o: [
-                Object.assign(
-                    f_o_jsh_label(), 
-                    {innerText: 'Paper format'}
-                ), 
-                {
-                    f_o_jsh: function(){
-                        let o = f_o_jsh__select(
-                            o_state,
-                            'o_paper_format',
-                            o_state.a_o_paper_format,
-                            (o)=>{
-                                let n_x = f_n_converted(o.o_scl_mm.n_x, 'millimeter', o_state.o_unit.s_name);
-                                let n_y = f_n_converted(o.o_scl_mm.n_y, 'millimeter', o_state.o_unit.s_name);
-                                return `${o.s_name} - ${n_x.toFixed(2)}*${n_y.toFixed(2)} (${o_state.o_unit.s_name})`
-                            }
-                        );
-                        let f_oninput_original = o.oninput;
-                        return Object.assign(
-                            o, 
-                            {
-                                oninput: function(){
-                                    // console.log('input was triggered'), 
-                                    f_oninput_original(...arguments)
-
-                                    o_js__n_dots_per_mm._f_render();
-                                    o_js__n_dots_per_inch._f_render();
-                                    o_js__canvas_preview._f_render();
-                                    
-                                }
-                            }
-                        )
-                    }
-                },
-            ]
-        }
-    }
-}
-
-o_js__a_o_unit = {
-    f_o_jsh: function(){
-        return {
-            a_o: [
-                Object.assign(
-                    f_o_jsh_label(), 
-                    {innerText: 'Unit'}
-                ), 
-                {
-                    f_o_jsh: function(){
-                        let o = f_o_jsh__select(
-                            o_state,
-                            'o_unit',
-                            o_state.a_o_unit,
-                            (o)=>{return o.s_name}
-                        );
-                        let f_oninput_original = o.oninput;
-                        return Object.assign(
-                            o, 
-                            {
-                                oninput: function(){
-                                    // console.log('input was triggered'), 
-                                    f_oninput_original(...arguments)
-
-                                    o_js__n_dots_per_mm._f_render();
-                                    o_js__n_dots_per_inch._f_render();
-                                    o_js__a_o_paper_format._f_render();
-                                    o_js__thicknesses._f_render();
-                                    o_js__o_scl_mm_poster._f_render();
-                                }
-                            }
-                        )
-                    }
-                },
-            ]
-        }
-    }
-}
-o_js__n_dots_per_mm = {
-    f_o_jsh:function(){
-        return {
-            a_o: [
-                Object.assign(
-                    f_o_jsh_label(), 
-                    {innerText: 'Dots per millimeter (dpm?)'}
-                ), 
-                {
-                    s_tag: "input",
-                    type: "number",
-                    min: 1,
-                    oninput: function(o_e){
-                        o_state.n_dots_per_mm = o_e.target.value
-                        o_state.n_dots_per_inch = f_n_converted(
-                            o_state.n_dots_per_mm, 
-                            o_state.o_unit.s_name, 
-                            'inch'
-                        );
-                        o_js__n_dots_per_inch._f_render()
-                    }, 
-                    value: o_state.n_dots_per_mm
-                }
-            ]
-        }
-    }
-}
-
 
 let f_update_n_dots_per_mm = function(){
     let o_unit__inch = o_state.a_o_unit.find(o=>o.s_name == 'inch');
     let n_factor = o_state.o_unit.n_millimeter / o_unit__inch.n_millimeter
     o_state.n_dots_per_mm = o_state.n_dots_per_inch * n_factor;
 }
-o_js__n_dots_per_inch = {
-    f_o_jsh:function(){
-        return {
-            a_o: [
-                Object.assign(
-                    f_o_jsh_label(), 
-                    {innerText: 'Dots per Inch (DPI)'}
-                ), 
-                {
-                    s_tag: "input",
-                    type: "number",
-                    min: 1,
-                    oninput: function(o_e){
-
-                        o_state.n_dots_per_inch = o_e.target.value
-                        o_state.n_dots_per_mm = f_n_converted(
-                            o_state.n_dots_per_mm, 
-                            'inch',
-                            o_state.o_unit.s_name, 
-                        );
-                        o_js__n_dots_per_inch._f_render()
 
 
-                    }, 
-                    value: o_state.n_dots_per_inch
-                }
-            ]
-        } 
-
-    }
-}
-
-
-o_js__a_o_file = {
+o_o_js.o_js__a_o_file = {
     f_o_jsh: function(){
         return {
             a_o: [
@@ -1016,8 +665,7 @@ o_js__a_o_file = {
         }
     }
 };
-
-    o_js__preview_image = {
+o_o_js.o_js__preview_image = {
         f_o_jsh: function(){
             return {
                 class: "image-container", 
@@ -1037,9 +685,9 @@ o_js__a_o_file = {
                 ]
             }
         }
-    }
-    o_js__o_scl_mm_poster = {
-        f_o_jsh: ()=>{
+}
+o_o_js.o_js__o_scl_mm_poster = {
+        f_o_jsh:async ()=>{
             let o_s_axis_o_js= {
                 o_js__n_x: null,
                 o_js__n_y: null
@@ -1061,6 +709,7 @@ o_js__a_o_file = {
                                 {
                                     s_tag: 'input', 
                                     type: "number", 
+                                    max: 2000,
                                     oninput: function(o_e){
                                         let n = parseFloat(o_e.target.value);
                                         let n_mm = f_n_converted(
@@ -1076,6 +725,7 @@ o_js__a_o_file = {
                                         console.log(n_ratio)
                                         o_s_axis_o_js[`o_js__${s_axis_other}`]._f_render();
                                         o_js__preview_image._f_render();
+                                        o_js__size_comparison._f_render();
                                         f_update_a_o_canvas()
                                     }, 
                                     value: f_n_converted(
@@ -1094,6 +744,8 @@ o_js__a_o_file = {
             
             o_s_axis_o_js.o_js__n_x = f_o_js__n_axis('n_x')
             o_s_axis_o_js.o_js__n_y = f_o_js__n_axis('n_y')
+
+
 
             return {
                 a_o:[
@@ -1134,12 +786,14 @@ o_js__a_o_file = {
                         }
                     ),
                     o_s_axis_o_js.o_js__n_x, 
-                    o_s_axis_o_js.o_js__n_y
+                    o_s_axis_o_js.o_js__n_y, 
+                    
                 ]
             }
         }
-    }
-    o_js__canvas_preview = {
+}
+
+o_o_js.o_js__canvas_preview = {
         f_o_jsh: function(){
             return {
                 class: "canvas_preview", 
@@ -1162,106 +816,539 @@ o_js__a_o_file = {
                 ]
             }
         }
-    }
-    o_js__everything = {
+}
+
+let o_js__everything = {
         f_o_jsh: function(){
             return {
                 class: "app",
                 a_o:[
-                    {
-                        class: "fa-font only_required_to_load_font_for_using_it_on_canvas", 
-                        style: "font-family: 'Font Awesome 5 Free'; font-weight: 900; visibility: hidden;"
-                    },
-
-                    {
-                        class: "a_o_canvas",
-                    },
-                    o_js__a_o_file,
-                    o_js__a_o_paper_format,
-                    o_js__preview_image,
-                    o_js__a_o_unit,
-                    o_js__canvas_preview,
-                    o_js__thicknesses,
-                    o_js__n_dots_per_mm,
-                    o_js__n_dots_per_inch,
-                    o_js__o_scl_mm_poster,
+                    
                     {
                         class: "inputs", 
                         a_o:[
-                            {
-                                s_tag: 'input', 
-                                type: "file", 
-                                onchange: function(){
-                                    const a_o_js_file = this.files; 
-                                    for (let n_i = 0; n_i < a_o_js_file.length; n_i++) {
-                                      const o_js_file = a_o_js_file[n_i];
-   
-                                      const o_reader = new FileReader();
-                                
-                                        o_reader.onload = function(o_e) {
-                                            let v_data_o_js_file = o_e.target.result;
-                                            let o_file = new O_file(
-                                                o_js_file, 
-                                                v_data_o_js_file,
-                                                o_js_file.type, 
-                                                o_js_file.name
-                                            );
-                                            o_state.o_img = new Image();
-                                            o_state.o_img.onload = function(){
-                                                o_state.o_scl_px_image_original = new O_vec2(o_state.o_img.width, o_state.o_img.height);
-                                                o_state.n_ratio_image_o_scl_x_to_y = o_state.o_img.width / o_state.o_img.height;
-                                                o_state.o_scl_mm_poster.n_y = o_state.o_scl_mm_poster.n_x*(1./o_state.n_ratio_image_o_scl_x_to_y);
-                                                o_js__preview_image._f_render()
-                                                o_js__o_scl_mm_poster._f_render()
-                                                window.o_js__preview_image = o_js__preview_image
-                                                f_update_a_o_canvas();
-
-                                            }
-                                            
-                                            window.o_js__preview_image = o_js__preview_image
-
-                                            o_state.o_img.src = v_data_o_js_file
-                                            o_state.s_url_preview_image = v_data_o_js_file
-                                            o_state.a_o_file = [o_file]//.push(o_file);
-                                            o_state.o_file = o_file
-                                            o_js__a_o_file._f_render()
-
-                                        }
-                                        if (o_js_file.type.startsWith('image/')) {
-                                            o_reader.readAsDataURL(o_js_file);
-                                        }
-                                        if (o_js_file.type.startsWith('text/')) {
-                                            o_reader.readAsText(o_js_file);
-                                        }
-
-                                        let o_s_ready_state_n = {
-                                            EMPTY: 0, 
-                                            LOADING: 1, 
-                                            DONE: 2, 
-                                        }
-
-                                        if(o_reader.readyState == o_s_ready_state_n.EMPTY){
-                                            o_reader.readAsArrayBuffer(o_js_file);
-                                        }
-                                        
-                                    }
-
-                                }
-                            },
+                            
    
                         ]
                     }
                 ]
             }
         }
-    }
+}
 
-let o = f_o_html__and_make_renderable(
- o_js__everything
+let o = await f_o_html__and_make_renderable(
+ {
+    a_o: [
+        {
+            class: "fa-font only_required_to_load_font_for_using_it_on_canvas", 
+            style: "font-family: 'Font Awesome 5 Free'; font-weight: 900; visibility: hidden;display:none;"
+        },
+        {
+            class: "d_0", 
+            style: `
+            display: flex;
+            flex-wrap:wrap;
+            flex-direction: row;
+            `,
+            a_o: [
+                {   
+                    style: `
+                    flex:0 0 60%;
+                    display:flex; 
+                    position:relative;
+                    `, 
+                    class: "d_1", 
+                    a_o: [
+                        {
+                            s_tag: "img", 
+                            src: './human_size_comparison.png',
+                            style: `
+                            z-index:1;
+                            filter: invert(1) contrast(0.8);
+                            bottom: 0px;
+                            max-width: 100%;
+                            `,
+                        },
+                        f_o_js_from_s_name(
+                            'o_js__poster_preview',
+                            {
+                                f_o_jsh: async function(){
+                                        let o_img_human_size_comparison = await f_o_img('./human_size_comparison.png');
+                                        let n_px_per_mm = o_img_human_size_comparison.height / 1800;
+                                        let o_canvases = o_state.o_scl_mm_poster.div(
+                                            o_state.o_scl_mm_image
+                                        );
+                                        let o_canvases_ceiled = o_canvases.ceil();
+                                        return {
+                                            style:
+                                            `
+                                            position: absolute; 
+                                            top: 50%;
+                                            left: 50%;
+                                            z-index:2;
+                                            `,
+                                            a_o: [
+                                                {
+                                                    class: "poster", 
+                                                    style: [
+                                                        `z-index:-2`,
+                                                        `position: relative`,
+                                                        `width: ${n_px_per_mm*o_state.o_scl_mm_poster.n_x}px`,
+                                                        `height: ${n_px_per_mm*o_state.o_scl_mm_poster.n_y}px`,
+                                                        'background:red'
+                                                    ].join(';'), 
+                                                    a_o: [
+                                                        {
+                                                            style: `display: ${(o_state?.o_img?.src) ? 'none': 'block'}`,
+                                                            innerText: 'click here to load image', 
+                                                            class: "clickable", 
+                                                            s_tag: 'input', 
+                                                            type: "file", 
+                                                            onchange: function(){
+                                                                const a_o_js_file = this.files; 
+                                                                for (let n_i = 0; n_i < a_o_js_file.length; n_i++) {
+                                                                    const o_js_file = a_o_js_file[n_i];
+                                
+                                                                    const o_reader = new FileReader();
+                                                            
+                                                                    o_reader.onload = function(o_e) {
+                                                                        let v_data_o_js_file = o_e.target.result;
+                                                                        let o_file = new O_file(
+                                                                            o_js_file, 
+                                                                            v_data_o_js_file,
+                                                                            o_js_file.type, 
+                                                                            o_js_file.name
+                                                                        );
+                                                                        o_state.o_img = new Image();
+                                                                        o_state.o_img.onload = function(){
+                                                                            o_state.o_scl_px_image_original = new O_vec2(o_state.o_img.width, o_state.o_img.height);
+                                                                            o_state.n_ratio_image_o_scl_x_to_y = o_state.o_img.width / o_state.o_img.height;
+                                                                            o_state.o_scl_mm_poster.n_y = o_state.o_scl_mm_poster.n_x*(1./o_state.n_ratio_image_o_scl_x_to_y);
+                                                                            o_o_js?.o_js__preview_image?._f_render()
+                                                                            o_o_js?.o_js__o_scl_mm_poster?._f_render()
+                                                                            o_o_js?.o_js__size_comparison?._f_render()
+                                                                            f_update_a_o_canvas();
+                            
+                                                                        }
+                                                                        
+                            
+                                                                        o_state.o_img.src = v_data_o_js_file
+                                                                        o_state.s_url_preview_image = v_data_o_js_file
+                                                                        o_state.a_o_file = [o_file]//.push(o_file);
+                                                                        o_state.o_file = o_file
+                                                                        o_o_js?.o_js__a_o_file?._f_render()
+                            
+                                                                    }
+                                                                    if (o_js_file.type.startsWith('image/')) {
+                                                                        o_reader.readAsDataURL(o_js_file);
+                                                                    }
+                                                                    if (o_js_file.type.startsWith('text/')) {
+                                                                        o_reader.readAsText(o_js_file);
+                                                                    }
+                            
+                                                                    let o_s_ready_state_n = {
+                                                                        EMPTY: 0, 
+                                                                        LOADING: 1, 
+                                                                        DONE: 2, 
+                                                                    }
+                            
+                                                                    if(o_reader.readyState == o_s_ready_state_n.EMPTY){
+                                                                        o_reader.readAsArrayBuffer(o_js_file);
+                                                                    }
+                                                                    
+                                                                }
+                            
+                                                            }
+                                                            
+                                                        },
+                                                        {
+                                                            style: `display: ${(o_state?.o_img?.src) ? 'block': 'none'}`,
+                                                            a_o: [
+                                                                {
+                                                                    s_tag: "img", 
+                                                                    'src': o_state?.o_img?.src,
+                                                                    style:[
+                                                                        `max-height: 100%`,
+                                                                        `max-width: 100%`,
+                                                                        `z-index: -3`,
+                                                                        `position: absolute`,
+                                                                        `top: 0`,
+                                                                        `left: 0`,
+                                                                    ].join(';')
+                                                                },
+                                                                ...new Array(o_canvases_ceiled.n_x)
+                                                                    .fill(0)
+                                                                    .map((v,n_idx)=>{
+                                                                        return {
+                                                                            style: [
+                                                                                `z-index:-1`,
+                                                                                `position: absolute`,
+                                                                                `top: 0px`,
+                                                                                `left: ${(n_px_per_mm*n_idx*o_state.o_scl_mm_image.n_x)}px`,
+                                                                                `width: 2px`,
+                                                                                `height: 100%`,
+                                                                                'background:white',
+                                                                                `border: 2px solid black`
+                                                                            ].join(';')
+                                                                            
+                                                                        }
+                                                                    }),
+                                                                ...new Array(o_canvases_ceiled.n_x)
+                                                                    .fill(0)
+                                                                    .map((v,n_idx)=>{
+                                                                        return {
+                                                                            style: [
+                                                                                `z-index:-1`,
+                                                                                `position: absolute`,
+                                                                                `left: 0px`,
+                                                                                `top: ${(n_px_per_mm*n_idx*o_state.o_scl_mm_image.n_y)}px`,
+                                                                                `width: 100%`,
+                                                                                `height: 2px`,
+                                                                                'background:white',
+                                                                                `border: 2px solid black`
+                                                                            ].join(';')
+                                                                            
+                                                                        }
+                                                                    }),
+
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                            ]
+                                        }
+                                }
+                            }
+                        )
+                    ]
+                }, 
+                {
+                    style: "flex: 0 0 40%",
+                    class: "d_2", 
+                    a_o: [ 
+                        f_o_js_from_s_name(
+                            'o_js__unit', 
+                            {
+                                f_o_jsh: function(){
+                                    return {
+                                        a_o: [
+                                            Object.assign(
+                                                f_o_jsh_label(), 
+                                                {innerText: 'Unit'}
+                                            ), 
+                                            {
+                                                f_o_jsh: function(){
+                                                    let o = f_o_jsh__select(
+                                                        o_state,
+                                                        'o_unit',
+                                                        o_state.a_o_unit,
+                                                        (o)=>{return o.s_name}
+                                                    );
+                                                    let f_oninput_original = o.oninput;
+                                                    return Object.assign(
+                                                        o, 
+                                                        {
+                                                            oninput: function(){
+                                                                // console.log('input was triggered'), 
+                                                                f_oninput_original(...arguments)
+                            
+                                                                o_o_js?.o_js__n_dots_per_mm?._f_render();
+                                                                o_o_js?.o_js__n_dots_per_inch?._f_render();
+                                                                o_o_js?.o_js__a_o_paper_format?._f_render();
+                                                                o_o_js?.o_js__thicknesses?._f_render();
+                                                                o_js__o_scl_mm_poster._f_render();
+                                                            }
+                                                        }
+                                                    )
+                                                }
+                                            },
+                                        ]
+                                    }
+                                }
+                            }
+                        ), 
+                        f_o_js_from_s_name(
+                            'o_js__paper_format', 
+                            {
+                                f_o_jsh: function(){
+                                    return {
+                                        a_o: [
+                                            Object.assign(
+                                                f_o_jsh_label(), 
+                                                {innerText: 'Paper format'}
+                                            ), 
+                                            {
+                                                f_o_jsh: function(){
+                                                    let o = f_o_jsh__select(
+                                                        o_state,
+                                                        'o_paper_format',
+                                                        o_state.a_o_paper_format,
+                                                        (o)=>{
+                                                            let n_x = f_n_converted(o.o_scl_mm.n_x, 'millimeter', o_state.o_unit.s_name);
+                                                            let n_y = f_n_converted(o.o_scl_mm.n_y, 'millimeter', o_state.o_unit.s_name);
+                                                            return `${o.s_name} - ${n_x.toFixed(2)}*${n_y.toFixed(2)} (${o_state.o_unit.s_name})`
+                                                        }
+                                                    );
+                                                    let f_oninput_original = o.oninput;
+                                                    return Object.assign(
+                                                        o, 
+                                                        {
+                                                            oninput: function(){
+                                                                // console.log('input was triggered'), 
+                                                                f_oninput_original(...arguments)
+                            
+                                                                o_o_js?.o_js__n_dots_per_mm?._f_render();
+                                                                o_o_js?.o_js__n_dots_per_inch?._f_render();
+                                                                o_o_js?.o_js__canvas_preview?._f_render();
+                                                                
+                                                            }
+                                                        }
+                                                    )
+                                                }
+                                            },
+                                        ]
+                                    }
+                                }
+                            }
+                        ),
+                        f_o_js_from_s_name(
+                            'o_js__advanced__toggler', 
+                            {
+                                f_o_jsh:()=>{
+                                    return {
+                                        a_o: [
+                                            {
+                                                s_tag: 'i',
+                                                class:`fa-regular fa-square${(o_state?.b_display_advanced)?'-check': ''}`
+                                            }, 
+                                            {
+                                                innerText: "Advanced", 
+                                                onclick: ()=>{
+                                                    o_state.b_display_advanced = !o_state.b_display_advanced
+                                                    o_o_js.o_js__advanced?._f_render()
+                                                    o_o_js.o_js__advanced__toggler?._f_render()
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ),
+                        f_o_js_from_s_name(
+                            'o_js__advanced', 
+                            {
+                                f_o_jsh:()=>{
+                                    return {
+                                        style: `
+                                        display: ${(o_state?.b_display_advanced) ? 'flex' : 'none'}
+                                        `, 
+                                        a_o: [
+                                            {
+                                                innerText: "Margins"
+                                            },
+                                            f_o_js_from_s_name(
+                                                'o_js__thicknesses', 
+                                                {
+                                                    f_o_jsh: function(){
+                                                        return {
+                                                            a_o: [
+                                                                [
+                                                                    {s_prop: 'print_border', s_text: 'print border margin (security margin)',},
+                                                                    {s_prop: 'glue_border', s_text: 'glue border margin (a help for gluing the paprs together)'},
+                                                                ].map(
+                                                                    o=>{
+                                                                        let s_prop_thickness = `o_thickness_mm_${o.s_prop}`
+                                                                        let s_prop_boolean = `b_onevalue_only_${o.s_prop}`;
+                                                                        let s_prop_color = `s_color_${o.s_prop}`;
+                                                
+                                                                        let b_onevalue_only = o_state[s_prop_boolean];
+                                                                        let o_js__values = {
+                                                                            f_o_jsh: function(){
+                                                                                return {
+                                                                                    a_o: [
+                                                                                        ...Array(
+                                                                                            (b_onevalue_only) ? 1: 4
+                                                                                        ).fill(0).map((n,n_idx)=>{
+                                                                                            return {
+                                                                                                s_tag: "input", 
+                                                                                                type: "number", 
+                                                                                                min: 0, 
+                                                                                                oninput: (o_e)=>{
+                                                                                                    let n = parseFloat(o_e.target.value)
+                                                                                                    let n_mm = f_n_converted(
+                                                                                                        n, 
+                                                                                                        o_state.o_unit.s_name, 
+                                                                                                        'millimeter',
+                                                                                                    );
+                                                
+                                                                                                    if(b_onevalue_only){
+                                                                                                        o_state[s_prop_thickness] = new O_vec4(
+                                                                                                            n_mm
+                                                                                                        )
+                                                                                                    }else{
+                                                                                                        o_state[s_prop_thickness][n_idx] = n_mm
+                                                                                                    }
+                                                                                                    f_update_all_o_scl_unit()
+                                                                                                },
+                                                                                                value: f_n_converted(
+                                                                                                    o_state[s_prop_thickness][n_idx], 
+                                                                                                    'millimeter',
+                                                                                                    o_state.o_unit.s_name, 
+                                                                                                ),
+                                                                                            }
+                                                                                        })
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        return {
+                                                                            a_o: [
+                                                                                {
+                                                                                    f_o_jsh: function(){
+                                                                                        return {
+                                                                                            s_tag: 'input', 
+                                                                                            type: "color",
+                                                                                            oninput: function(o_e, o_js){
+                                                                                                console.log(arguments)
+                                                                                                o_state[s_prop_color] = o_e.target.value
+                                                                                                f_update_all_o_scl_unit();
+                                                                                                o_js?._f_update();
+                                                                                            },
+                                                                                            class: o.s_prop,
+                                                                                            style: `display:inline-block;background-color:${o_state[s_prop_color]}`
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                Object.assign(
+                                                                                    f_o_jsh_label(), 
+                                                                                    {innerText: o.s_text}
+                                                                                ), 
+                                                                                o_js__values,
+                                                                                {
+                                                                                    class: "clickable", 
+                                                                                    onclick: ()=>{o_state[s_prop_boolean] = !o_state[s_prop_boolean];o_o_js?.o_js__thicknesses?._f_render() },
+                                                                                    a_o: [
+                                                                                        Object.assign(
+                                                                                            f_o_jsh_label(), 
+                                                                                            {innerText: 'separate values for each side'}
+                                                                                        ), 
+                                                                                        {
+                                                                                            s_tag: 'i',
+                                                                                            class:`fa-regular fa-square${(o_state[s_prop_boolean])?'-check': ''}`
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                )
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            ), 
+                                            f_o_js_from_s_name(
+                                                'o_js__dots_per_inch', 
+                                                {
+                                                    f_o_jsh:function(){
+                                                        return {
+                                                            a_o: [
+                                                                Object.assign(
+                                                                    f_o_jsh_label(), 
+                                                                    {innerText: 'Dots per Inch (DPI)'}
+                                                                ), 
+                                                                {
+                                                                    s_tag: "input",
+                                                                    type: "number",
+                                                                    min: 1,
+                                                                    oninput: function(o_e){
+                                                
+                                                                        o_state.n_dots_per_inch = o_e.target.value
+                                                                        o_state.n_dots_per_mm = f_n_converted(
+                                                                            o_state.n_dots_per_mm, 
+                                                                            'inch',
+                                                                            o_state.o_unit.s_name, 
+                                                                        );
+                                                                        o_js__n_dots_per_inch._f_render()
+                                                
+                                                
+                                                                    }, 
+                                                                    value: o_state.n_dots_per_inch
+                                                                }
+                                                            ]
+                                                        } 
+                                                
+                                                    }, 
+
+                                                }
+                                            ), 
+                                            // f_o_js_from_s_name(
+                                            //     'o_js_dots_per_mm', 
+                                            //     {
+                                            //         f_o_jsh:function(){
+                                            //             return {
+                                            //                 a_o: [
+                                            //                     Object.assign(
+                                            //                         f_o_jsh_label(), 
+                                            //                         {innerText: 'Dots per millimeter (dpm?)'}
+                                            //                     ), 
+                                            //                     {
+                                            //                         s_tag: "input",
+                                            //                         type: "number",
+                                            //                         min: 1,
+                                            //                         oninput: function(o_e){
+                                            //                             o_state.n_dots_per_mm = o_e.target.value
+                                            //                             o_state.n_dots_per_inch = f_n_converted(
+                                            //                                 o_state.n_dots_per_mm, 
+                                            //                                 o_state.o_unit.s_name, 
+                                            //                                 'inch'
+                                            //                             );
+                                            //                             o_js__n_dots_per_inch._f_render()
+                                            //                         }, 
+                                            //                         value: o_state.n_dots_per_mm
+                                            //                     }
+                                            //                 ]
+                                            //             }
+                                            //         }
+                                            //     }
+                                            // )
+                                        ]
+                                    }
+                                }
+                            }
+                        )
+
+                        // o_o_js?.o_js__a_o_file,
+                        // o_o_js?.o_js__a_o_paper_format,
+                        // // o_o_js?.o_js__preview_image,
+                        // o_o_js?.o_js__a_o_unit,
+                        // o_o_js?.o_js__canvas_preview,
+                        // o_o_js?.o_js__thicknesses,
+                        // o_o_js?.o_js__n_dots_per_mm,
+                        // o_o_js?.o_js__n_dots_per_inch,
+                        // o_o_js?.o_js__o_scl_mm_poster,
+                    ]
+                }, 
+                f_o_js_from_s_name(
+                    'o_js__print_button', 
+                    {
+                        f_o_jsh: ()=>{
+                            return {
+                                style: "flex: 1 1 100%",
+                                s_tag: "button", 
+                                innerText: "Print !",
+                            }
+                        }
+                    }
+                )
+            ]
+        }
+    ]
+ }
 );
 document.body.appendChild(o)
 //after init
 f_update_n_dots_per_mm()
-o_js__n_dots_per_mm._f_render()
+o_o_js.o_o_js?.o_js__n_dots_per_mm?._f_render()
 
 f_update_all_o_scl_unit()
